@@ -15,7 +15,8 @@ class KerasFileReader(object):
 
     def __del__(self):
         if self.h5file:
-            self.h5file.close()
+            # self.h5file.close()
+            pass
 
     def _find_data(self, layer_name, var_name):
         def h5_visitor_func(name):

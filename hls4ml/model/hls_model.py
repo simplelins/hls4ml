@@ -17,7 +17,7 @@ from hls4ml.model.optimizer import optimize_model, get_available_passes
 class HLSConfig(object):
     def __init__(self, config):
         self.config = config
-
+        # get Backend str, if not exit,get default value
         self.backend = get_backend(self.config.get('Backend', 'Vivado'))
         self.writer = get_writer(self.config.get('Backend', 'Vivado'))
 
@@ -536,19 +536,22 @@ class HLSModel(object):
             return output, trace_output
 
     def build(self, reset=False, csim=True, synth=True, cosim=False, validation=False, export=False, vsynth=False):
+        backend = self.config.get_config_value('Backend', 'Vivado')
         if 'linux' in sys.platform:
-            backend = self.config.get_config_value('Backend', 'Vivado')
             if backend == 'Vivado':
                 found = os.system('command -v vivado_hls > /dev/null')
                 if found is not 0:
                     raise Exception('Vivado HLS installation not found. Make sure "vivado_hls" is on PATH.')
-
+            elif backend == 'Vitis':
+                found = os.system('command -v vitis_hls > /dev/null')
+                if found is not 0:
+                    raise Exception('Vitis HLS installation not found. Make sure "vitis_hls" is on PATH.')
             elif backend == 'Intel':
                 raise NotImplementedError
             elif backend == 'Mentor':
                 raise NotImplementedError
             else:
-                raise Exception('Backend values can be [Vivado, Intel, Mentor]')
+                raise Exception('Backend values can be [Vivado, Vitis, Intel, Mentor]')
 
         if not os.path.exists(self.config.get_output_dir()):
             # Assume the project wasn't written before
@@ -556,7 +559,23 @@ class HLSModel(object):
 
         curr_dir = os.getcwd()
         os.chdir(self.config.get_output_dir())
-        os.system('vivado_hls -f build_prj.tcl "reset={reset} csim={csim} synth={synth} cosim={cosim} validation={validation} export={export} vsynth={vsynth}"'
-            .format(reset=reset, csim=csim, synth=synth, cosim=cosim, validation=validation, export=export, vsynth=vsynth))
+        hlstool =""
+        if backend == 'Vitis':
+            hlstool = "vitis_hls"
+        else:
+            hlstool = "vivado_hls"
+        os.system('{hlstool} -f build_prj.tcl "reset={reset} csim={csim} synth={synth} cosim={cosim} validation={validation} export={export} vsynth={vsynth}"'
+            .format(hlstool=hlstool, reset=reset, csim=csim, synth=synth, cosim=cosim, validation=validation, export=export, vsynth=vsynth))
         os.chdir(curr_dir)
+        if export:
+            self.build_xclbin_with_hostbin()
 
+    def build_xclbin_with_hostbin(self):
+        backend = self.config.get_config_value('Backend', 'Vivado')
+        curr_dir = os.getcwd()
+        os.chdir(self.config.get_output_dir())
+        if 'linux' in sys.platform:
+            if backend == 'Vitis':
+                os.system("make xclbin")
+                os.system("make exe")
+        os.chdir(curr_dir)

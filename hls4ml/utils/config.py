@@ -5,7 +5,7 @@ import json
 import math
 from collections import OrderedDict
 
-def create_vivado_config(output_dir='my-hls-test', project_name='myproject',
+def create_vivado_config(output_dir='my-vivado-hls-test', project_name='myproject',
     fpga_part='xcku115-flvb2104-2-i', clock_period=5):
     
     config = {}
@@ -20,6 +20,20 @@ def create_vivado_config(output_dir='my-hls-test', project_name='myproject',
 
     return config
 
+def create_vitis_config(output_dir='my-vitis-hls-test', project_name='myproject',
+    fpga_part='xcu200-fsgd2104-2-e', clock_period=5):
+    
+    config = {}
+    
+    config['OutputDir'] = output_dir
+    config['ProjectName'] = project_name
+    config['XilinxPart'] = fpga_part
+    config['ClockPeriod'] = clock_period
+    config['Backend'] = 'Vitis'
+    config['IOType'] = 'io_parallel' # To become obsolete in the future
+    config['HLSConfig'] = {}
+
+    return config
 def _get_precision_from_quantizer(quantizer):
     import qkeras
     if isinstance(quantizer, str):

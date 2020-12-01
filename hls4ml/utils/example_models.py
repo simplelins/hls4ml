@@ -1,8 +1,9 @@
 from urllib.request import urlretrieve
-from .config import create_vivado_config
+from .config import create_vivado_config, create_vitis_config
 import pprint
 import json
 import yaml
+import os
 
 def _load_data_config_avai(model_name):
     """
@@ -12,11 +13,12 @@ def _load_data_config_avai(model_name):
     """
 
     link_to_list = 'https://raw.githubusercontent.com/hls-fpga-machine-learning/example-models/master/available_data_config.json'
-    
-    temp_file, _ = urlretrieve(link_to_list)
+    model_file = "available_data_config.json"
+    if not os.path.exists(model_file):
+        temp_file, _ = urlretrieve(link_to_list, model_file)
     
     # Read data from file:
-    data = json.load(open(temp_file))
+    data = json.load(open(model_file))
 
     return data[model_name]
 
@@ -36,6 +38,19 @@ def _create_default_config(model_name, model_config):
 
     #Initiate the configuration file
     config = create_vivado_config()
+
+    #Additional configuration parameters
+    config[model_config] = model_name
+    config['HLSConfig']['Model'] = {}
+    config['HLSConfig']['Model']['Precision'] = 'ap_fixed<16,6>'
+    config['HLSConfig']['Model']['ReuseFactor'] = '1'
+
+    return config
+
+def _create_vitis_config(model_name, model_config):
+
+    #Initiate the configuration file
+    config = create_vitis_config()
 
     #Additional configuration parameters
     config[model_config] = model_name
@@ -69,9 +84,10 @@ def _load_example_data(model_name):
 
     link_to_input = 'https://raw.githubusercontent.com/hls-fpga-machine-learning/example-models/master/data/' + input_file_name
     link_to_output = 'https://raw.githubusercontent.com/hls-fpga-machine-learning/example-models/master/data/' + output_file_name
-
-    urlretrieve(link_to_input, input_file_name)
-    urlretrieve(link_to_output, output_file_name)
+    if not os.path.exists(input_file_name):
+        urlretrieve(link_to_input, input_file_name)
+    if not os.path.exists(output_file_name):
+        urlretrieve(link_to_output, output_file_name)
 
 def _load_example_config(model_name):
 
@@ -84,7 +100,8 @@ def _load_example_config(model_name):
     link_to_config = 'https://raw.githubusercontent.com/hls-fpga-machine-learning/example-models/master/config-files/' + config_name
 
     #Load the configuration as dictionary from file
-    urlretrieve(link_to_config, config_name)
+    if not os.path.exists(config_name):
+        urlretrieve(link_to_config, config_name)
 
     #Load the configuration from local yml file
     with open(config_name, 'r') as ymlfile:
@@ -92,7 +109,7 @@ def _load_example_config(model_name):
 
     return config
 
-def fetch_example_model(model_name):
+def fetch_example_model(model_name, xilinx = "vivado"):
     """
     Download an example model (and example data & configuration if available) from github repo to working directory, and return the corresponding configuration:
 
@@ -102,6 +119,7 @@ def fetch_example_model(model_name):
 
     Args:
         - model_name: string, name of the example model in the repo. Example: fetch_example_model('KERAS_3layer.json')
+        - xilinx: string, name of the example model's project type,one of vitis and vivado.
     
     Return:
         - Dictionary that stores the configuration to the model
@@ -133,7 +151,8 @@ def fetch_example_model(model_name):
     
     #Download the example model
     print("Downloading example model files ...")
-    urlretrieve(download_link_model, model_name)
+    if not os.path.exists(model_name):
+        urlretrieve(download_link_model, model_name)
 
     #Check if the example data and configuration for the model are available
     if _data_is_available(model_name):
@@ -141,6 +160,8 @@ def fetch_example_model(model_name):
 
     if _config_is_available(model_name):
         config = _load_example_config(model_name)
+    elif xilinx in "vitis":
+        config = _create_vitis_config(model_name, model_config)
     else:
         config = _create_default_config(model_name, model_config)
 
@@ -149,7 +170,8 @@ def fetch_example_model(model_name):
         model_weight_name = model_name[:-5] + "_weights.h5"
 
         download_link_weight = download_link + model_type + '/' + model_weight_name
-        urlretrieve(download_link_weight, model_weight_name)
+        if not os.path.exists(model_weight_name):
+            urlretrieve(download_link_weight, model_weight_name)
 
         config['KerasH5'] =  model_weight_name #Set configuration for the weight file
     
@@ -158,8 +180,9 @@ def fetch_example_model(model_name):
 def fetch_example_list():
     
     link_to_list = 'https://raw.githubusercontent.com/hls-fpga-machine-learning/example-models/master/available_models.json'
-    
-    temp_file, _ = urlretrieve(link_to_list)
+    temp_file = "available_models.json"
+    if not os.path.exists(temp_file):
+        temp_file, _ = urlretrieve(link_to_list, temp_file)
     
     # Read data from file:
     data = json.load(open(temp_file))
