@@ -564,11 +564,13 @@ class HLSModel(object):
             hlstool = "vitis_hls"
         else:
             hlstool = "vivado_hls"
+        print('{hlstool} -f build_prj.tcl "reset={reset} csim={csim} synth={synth} cosim={cosim} validation={validation} export={export} vsynth={vsynth}"'
+            .format(hlstool=hlstool, reset=reset, csim=csim, synth=synth, cosim=cosim, validation=validation, export=export, vsynth=vsynth))
         os.system('{hlstool} -f build_prj.tcl "reset={reset} csim={csim} synth={synth} cosim={cosim} validation={validation} export={export} vsynth={vsynth}"'
             .format(hlstool=hlstool, reset=reset, csim=csim, synth=synth, cosim=cosim, validation=validation, export=export, vsynth=vsynth))
         os.chdir(curr_dir)
-        if export:
-            self.build_xclbin_with_hostbin()
+        # if export:
+        #     self.build_xclbin_with_hostbin()
 
     def build_xclbin_with_hostbin(self):
         backend = self.config.get_config_value('Backend', 'Vivado')

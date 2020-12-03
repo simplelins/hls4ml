@@ -75,7 +75,7 @@ register_layer('BatchNormalizationQuantizedTanh', BatchNormalizationQuantizedTan
 
 # Register the templates for config and function
 templates.get_backend('Vivado').register_templates('BatchNormalizationQuantizedTanh', batchnorm_quantized_tanh_function_template, batchnorm_quantized_tanh_config_template)
-# templates.get_backend('Vivado').register_templates('BatchNormalizationQuantizedTanh', batchnorm_quantized_tanh_function_template, batchnorm_quantized_tanh_config_template)
+templates.get_backend('Vitis').register_templates('BatchNormalizationQuantizedTanh', batchnorm_quantized_tanh_function_template, batchnorm_quantized_tanh_config_template)
 
 class MergeBatchNormAndQuantizedTanh(OptimizerPass):
     def match(self, node):

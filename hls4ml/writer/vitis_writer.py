@@ -703,7 +703,7 @@ class VitisWriter(Writer):
         fout.close()
 
     def write_hls(self, model):
-        print('Writing HLS project')
+        print('Writing vitis HLS project')
         self.write_project_dir(model)
         self.write_project_cpp(model)
         self.write_project_header(model)

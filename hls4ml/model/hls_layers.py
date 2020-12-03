@@ -523,7 +523,10 @@ class Conv1D(Layer):
     def function_cpp(self):
         params = self._default_function_params()
         params['strategy'] = self.get_attr('strategy')
-        params['data_format'] = 'cf' if self.get_attr('data_format') == 'channels_first' else 'cl'
+        if params['strategy'] == "latency":
+            params['data_format'] = 'cl'
+        else:
+            params['data_format'] = 'cf' if self.get_attr('data_format') == 'channels_first' else 'cl'
         params['w'] = self.get_weights('weight').name
         params['b'] = self.get_weights('bias').name
 

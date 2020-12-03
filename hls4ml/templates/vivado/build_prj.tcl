@@ -65,7 +65,7 @@ if {$opt(reset)} {
   open_solution "solution1"
 }
 catch {config_array_partition -maximum_size 4096}
-set_part {xcku115-flvb2104-2-i}
+set_part {xcu200-fsgd2104-2-e}
 create_clock -period 5 -name default
 
 
