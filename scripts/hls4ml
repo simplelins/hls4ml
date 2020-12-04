@@ -7,6 +7,7 @@ __version__ = '0.2.0'
 import argparse
 import os
 import sys
+sys.path.insert(0, r'/home/lww/project/12_FPGA/hls4ml') 
 import yaml
 import json
 import h5py
@@ -37,6 +38,7 @@ def main():
     config_parser.add_argument('-f', '--fpga', help='FPGA part', default='xcku115-flvb2104-2-i')
     config_parser.add_argument('-c', '--clock', help='Clock frequency (ns)', type=int, default=5)
     config_parser.add_argument('-g', '--granularity', help='Granularity of configuration. One of "model", "type" or "name"', default='model')
+    config_parser.add_argument('-b', '--backend', help='Backend "Vivado" or "Vitis"', default="Vivado")
     config_parser.add_argument('-x', '--precision', help='Default precision', default='ap_fixed<16,6>')
     config_parser.add_argument('-r', '--reuse-factor', help='Default reuse factor', type=int, default=1)
     config_parser.add_argument('-o', '--output', help='Output file name', default=None)
@@ -72,14 +74,21 @@ def config(args):
     if args.model is None:
         print('Model file (-m or --model) must be provided.')
         sys.exit(1)
-    
-    config = hls4ml.utils.config.create_vivado_config(
-        output_dir=args.dir,
-        project_name=args.project,
-        fpga_part=args.fpga,
-        clock_period=args.clock
-    )
-
+    config = ""
+    if args.backend is "Vitis":
+        config = hls4ml.utils.config.create_vitis_config(
+            output_dir=args.dir,
+            project_name=args.project,
+            fpga_part=args.fpga,
+            clock_period=args.clock
+        )
+    else:
+        config = hls4ml.utils.config.create_vivado_config(
+            output_dir=args.dir,
+            project_name=args.project,
+            fpga_part=args.fpga,
+            clock_period=args.clock
+        )
     if args.model.endswith('.h5'):
         config['KerasH5'] = args.model
 
@@ -157,31 +166,44 @@ def build(args):
         csim = synth = cosim = validation = export = vsynth = 1
     
     yamlConfig = parse_config(args.project + '/' + config_filename)
-
+    backend = yamlConfig.get('Backend', 'Vivado')
+    hlstool =""
     # Check if vivado_hls is available
     if 'linux' in sys.platform or 'darwin' in sys.platform:
-        backend = yamlConfig.get('Backend', 'Vivado')
         if backend == 'Vivado':
             found = os.system('command -v vivado_hls > /dev/null')
             if found is not 0:
                 print('Vivado HLS installation not found. Make sure "vivado_hls" is on PATH.')
                 sys.exit(1)
+            hlstool = "vivado_hls"
+        elif backend == 'Vitis':
+            found = os.system('command -v vitis_hls > /dev/null')
+            if found is not 0:
+                print('Vitis HLS installation not found. Make sure "vitis_hls" is on PATH.')
+                sys.exit(1)
+            hlstool = "vitis_hls"
         elif backend == 'Intel':
             raise NotImplementedError
         elif backend == 'Mentor':
             raise NotImplementedError
         else:
             raise Exception('Backend values can be [Vivado, Intel, Mentor]')
-    
-    os.system('cd {dir} && vivado_hls -f build_prj.tcl "reset={reset} csim={csim} synth={synth} cosim={cosim} validation={validation} export={export} vsynth={vsynth}"'
-        .format(dir=args.project, reset=reset, csim=csim, synth=synth, cosim=cosim, validation=validation, export=export, vsynth=vsynth))
+    print('cd {dir} && {hlstool} -f build_prj.tcl "reset={reset} csim={csim} synth={synth} cosim={cosim} validation={validation} export={export} vsynth={vsynth}"'
+    .format(dir=args.project, hlstool=hlstool, reset=reset, csim=csim, synth=synth, cosim=cosim, validation=validation, export=export, vsynth=vsynth))
+    if hlstool:
+        os.system('cd {dir} && {hlstool} -f build_prj.tcl "reset={reset} csim={csim} synth={synth} cosim={cosim} validation={validation} export={export} vsynth={vsynth}"'
+    .format(dir=args.project, hlstool=hlstool, reset=reset, csim=csim, synth=synth, cosim=cosim, validation=validation, export=export, vsynth=vsynth))
 
 def report(args):
     if args.project is None:
         print('Project directory (-p or --project) must be provided.')
         sys.exit(1)
-    
-    hls4ml.report.read_vivado_report(args.project, args.full)
+    yamlConfig = parse_config(args.project + '/' + config_filename)
+    backend = yamlConfig.get('Backend', 'Vivado')
+    if backend == 'Vitis':
+        hls4ml.report.read_vitis_report(args.project, args.full)
+    else:
+        hls4ml.report.read_vivado_report(args.project, args.full)
 
 if __name__== "__main__":
     main()
