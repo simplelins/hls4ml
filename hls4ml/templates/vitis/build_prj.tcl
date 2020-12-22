@@ -64,7 +64,7 @@ if {$opt(reset)} {
 } else {
   open_solution "solution1"  -flow_target vitis
 }
-# catch {config_array_partition -maximum_size 4096}
+catch {config_array_partition -maximum_size 4096}
 set_part {xcu200-fsgd2104-2-e}
 create_clock -period 5 -name default
 
